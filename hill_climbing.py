@@ -10,13 +10,12 @@ goal_state_comma_saperated
 import queue,random,sys,time,random
 expn = [] #list to store explored nodes
 mvs = [] #list to store moves from root to goal
-nsml = 10 #number of side moves limit, for paltue situations
+nsml = 10 #number of side moves limit, for platue situations
 nsm = 0 #for counting no of side moves
 rrl = 100 #random restart limit
 rr = 0 #for counting no of random restarts
 nexp = 0 #number of nodes explored
-nvis = 0 #number of nodes expanded
-htyp = '' #hueristics type m = Manhatan, d = Displaced tiles, o = Over-estimated, any other for Zero hueristics
+htyp = '' #hueristics type m = Manhatan, d = Displaced tiles, s = sum of displaced tiles and manhattan, m0 = manhattan with 0
 fn = sys.argv[1] 
 time_e = 0 #for measuring time
 
@@ -68,26 +67,24 @@ def gen_c(parent):
     md = mv_d(parent)
     ml = mv_l(parent)
     mr = mv_r(parent)
-    cn = None
     tl = []
-    if (mu != None and mu.arr != parent.arr):
+    if (mu != None):
         expn.append(mu);nexp+=1
         tl.append(mu)
-    if (md != None and md.arr != parent.arr):
+    if (md != None):
         expn.append(md);nexp+=1
         tl.append(md)
-    if (ml != None and ml.arr != parent.arr):
+    if (ml != None):
         expn.append(ml);nexp+=1
         tl.append(ml)
-    if (mr != None and mr.arr != parent.arr):
+    if (mr != None):
         expn.append(mr);nexp+=1
         tl.append(mr)
-    if(max(tl).h < parent.h):
-        return max(tl)
-    elif(max(tl).h == parent.h and nsm < nsml):
-        print('taken a side move')
+    if(min(tl).h < parent.h):
+        return min(tl)
+    elif(min(tl).h == parent.h and nsm < nsml): #for taking side moves for flatue
         nsm += 1
-        return gen_c(max(tl))
+        return gen_c(min(tl))
     else:
         return None
     
@@ -166,16 +163,14 @@ class Node:
         else:
             return 0
      
-#function to run a_star algo
-def run_as(m,p):
-    global htyp, nmvs, nvis, rr, rrl,nsm
+#function to run hill climbing algo
+def run_as(p):
+    global mvs, nvis, rr, rrl,nsm,nexp,pf
     rr = 0
     nexp = 0
-    htyp = m
     mvs[:] = []
     
     while(True):
-        nvis += 1
         if(p.arr == goal):
             while(p.parent != None):
                 mvs.insert(0,p.mv)
@@ -186,15 +181,16 @@ def run_as(m,p):
         if(nn != None):
             p = nn
         else:
-            if(rr < rrl):
+            if(rr < rrl): #for random restart in local maximum situations
                 rr += 1
                 p = expn[random.randint(0,len(expn)-1)]
             else:
-                print('unable to solve')
+                pf = False
                 break
 
 #function for printing results data
 def p_data(m):
+    global pf
     print('\n')
     if(htyp == 'm'):
         print('Data with Manhatan hueristics : ')
@@ -211,15 +207,19 @@ def p_data(m):
     else:
         print('Unable to show output! Please try again with a valid hueristic type')
     print('Number of nodes explored :',nexp)
-    print('Number of nodes expanded :',nvis)
-    print('Length of path :',len(mvs))
-    print('Path to goal :',mvs)
+    if(pf):
+        print('Length of path :',len(mvs))
+        print('Path to goal :',mvs)
+    else:
+        print('unable to solve')
     print('Time taken for execution :',time_e,'seconds')
 
-run_l = ['m','m0','d','d0','s','s0'] #list of hueristics to run on m = Manhatan, d = Displaced tiles, o = Over-estimated, any other for Zero hueristics
-s = Node(None,sarr,'') #start node
+run_l = ['m','m0','d','d0','s','s0'] #list of hueristics to run on m = Manhatan, d = Displaced tiles, s = sum of displaced tiles and manhattan, m0 = manhattan with 0
 for zx in run_l:
+    pf = True
     start = time.time()
-    run_as(zx,s)
+    htyp = zx
+    s = Node(None,sarr,'') #start node
+    run_as(s)
     time_e = time.time()-start
     p_data(zx)
